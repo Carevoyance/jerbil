@@ -63,12 +63,21 @@ export class Generic extends process.EventEmitter {
     let separatorIndex = responseData.indexOf(CRLF)
     let head = responseData.slice(0, separatorIndex).toString()
 
+    var handleBatchResponse = () => {
+      if (responseData.indexOf(CRLF, separatorIndex + CRLF.length) !== -1) {
+        // Continue processing batch response
+        this._handleResponse(responseData.slice(separatorIndex + CRLF.length))
+      }
+    }
+
     if (message === undefined) {
       throw new Error('Response handler missing: ${head}')
     }
 
     if (!head.startsWith(message.expectedResponse)) {
-      return message.callback.call(this, new Error(head))
+      message.callback.call(this, new Error(head))
+      handleBatchResponse()
+      return
     }
 
     head = head.split(' ').slice(1)
@@ -97,10 +106,7 @@ export class Generic extends process.EventEmitter {
 
     message.callback.apply(this, responseArgs)
 
-    if (responseData.indexOf(CRLF, separatorIndex + CRLF.length) !== -1) {
-      // Continue processing batch response
-      this._handleResponse(responseData.slice(separatorIndex + CRLF.length))
-    }
+    handleBatchResponse()
   }
 
   _createMessage(command, args) {
