@@ -69,5 +69,10 @@ module.exports = {
   IGNORING: new Buffer('WATCHING 1\r\n'),
 
   USING: new Buffer('USING test\r\n'),
-  INSERTED: new Buffer('INSERTED 1\r\n')
+  INSERTED: new Buffer('INSERTED 1\r\n'),
+
+  DEADLINE_SOON_DELETE_BATCH: Buffer.concat([
+    new Buffer('DEADLINE_SOON\r\n'),
+    new Buffer('DELETED\r\n'),
+  ])
 }
