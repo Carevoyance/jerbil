@@ -1,5 +1,6 @@
 'use strict'
 
+import * as _ from 'lodash'
 import net from 'net'
 import msgpack from 'msgpack'
 import yaml from 'js-yaml'
@@ -8,16 +9,20 @@ import EventEmitter from 'events'
 import {commandSpecs, responseSpecs} from './spec'
 
 const CRLF = new Buffer('\r\n')
+const DEFAULT_RECONNECT_DELAY = 10;
+const MAX_RECONNECT_DELAY = 5000;
 
 export class Generic extends EventEmitter {
   constructor(port, host) {
     super()
     this.port = port || 11300
     this.host = host || '127.0.0.1'
-    this.disconnected = false
+    this.userDisconnected = false
+    this.connected = false
     this.raw = false
     this.setMaxListeners(0)
     this.queue = new Queue()
+    this.reconnectTimer = DEFAULT_RECONNECT_DELAY;
   }
 
   setRaw(val) {
@@ -26,35 +31,52 @@ export class Generic extends EventEmitter {
   }
 
   connect(callback = function() {}) {
-    this.disconnected = false
-    this.conn = net.createConnection(this.port, this.host)
+    this.userDisconnected = false
+    this.conn = net.createConnection(this.port, this.host);
     this.conn.setKeepAlive(true)
-    this.conn.on('connect', () => this._handleConnect(callback))
+    this.conn.on('connect', () => {
+      this.connected = true;
+      this._handleConnect(callback);
+    });
     this.conn.on('data', (data) => this._handleResponse(data))
-    this.conn.on('close', () => !this.disconnected && this.connect())
+
+    var reconnect = _.once(() => {
+      this.connected = false;
+      this.reconnectTimer = Math.min((this.reconnectTimer << 1) * (1 + 0.1*Math.random()), MAX_RECONNECT_DELAY);
+      this._clearQueue();
+      _.delay(() => !this.userDisconnected && this.connect(), this.reconnectTimer);
+    });
+    this.conn.on('close', reconnect);
+    this.conn.on('error', reconnect);
   }
 
   _handleConnect(callback) {
+    // Reset the reconnect delay once we connect successfully.
+    this.reconnectTimer = DEFAULT_RECONNECT_DELAY;
     this.emit('connect')
     setImmediate(function() {
       callback(null)
     })
   }
 
+  _clearQueue() {
+    this.queue.toArray().forEach((responseObj) => {
+      responseObj.callback.call(this, new Error('Disconnected'))
+    })
+    this.queue = new Queue()
+  }
+
   disconnect(callback = function() {}) {
     let err = null
 
-    if (this.disconnected) {
+    if (this.userDisconnected) {
       return callback(err)
     }
 
     try { this.conn.destroy() } catch (e) { err = e }
 
-    this.disconnected = true
-    this.queue.toArray().forEach((responseObj) => {
-      responseObj.callback.call(this, new Error('Disconnected'))
-    })
-    this.queue = new Queue()
+    this.userDisconnected = true
+    this._clearQueue()
 
     callback(err)
   }
@@ -143,13 +165,13 @@ export class Generic extends EventEmitter {
   }
 
   sendCommand(args, callback) {
-    if (this.disconnected) {
+    if (this.userDisconnected) {
       throw new Error('Connection has been closed by user')
     }
 
     this._validateArgs(args)
 
-    if (!(this.conn && this.conn.writable)) {
+    if (!this.connected) {
       return this.once('connect', () => this.sendCommand(args, callback))
     }
 
