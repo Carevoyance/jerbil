@@ -4,11 +4,12 @@ import net from 'net'
 import msgpack from 'msgpack'
 import yaml from 'js-yaml'
 import Queue from 'double-ended-queue'
+import EventEmitter from 'events'
 import {commandSpecs, responseSpecs} from './spec'
 
 const CRLF = new Buffer('\r\n')
 
-export class Generic extends process.EventEmitter {
+export class Generic extends EventEmitter {
   constructor(port, host) {
     super()
     this.port = port || 11300
