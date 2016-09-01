@@ -101,7 +101,7 @@ var Generic = exports.Generic = function (_EventEmitter) {
         _this2.reconnectTimer = Math.min((_this2.reconnectTimer << 1) * (1 + 0.1 * Math.random()), MAX_RECONNECT_DELAY);
         _this2._clearQueue();
         _.delay(function () {
-          return !_this2.userDisconnected && _this2.connect();
+          return !_this2.userDisconnected && !_this2.connected && _this2.connect();
         }, _this2.reconnectTimer);
       });
       this.conn.on('close', reconnect);
