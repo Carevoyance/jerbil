@@ -44,7 +44,7 @@ export class Generic extends EventEmitter {
       this.connected = false;
       this.reconnectTimer = Math.min((this.reconnectTimer << 1) * (1 + 0.1*Math.random()), MAX_RECONNECT_DELAY);
       this._clearQueue();
-      _.delay(() => !this.userDisconnected && this.connect(), this.reconnectTimer);
+      _.delay(() => !this.userDisconnected && !this.connected && this.connect(), this.reconnectTimer);
     });
     this.conn.on('close', reconnect);
     this.conn.on('error', reconnect);
