@@ -94,7 +94,7 @@ export class Generic extends EventEmitter {
     }
 
     if (message === undefined) {
-      throw new Error('Response handler missing: ${head}')
+      throw new Error(`Response handler missing: ${head}`)
     }
 
     if (!head.startsWith(message.expectedResponse)) {
