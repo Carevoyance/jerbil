@@ -21,10 +21,6 @@ var _net = require('net');
 
 var _net2 = _interopRequireDefault(_net);
 
-var _msgpack = require('msgpack');
-
-var _msgpack2 = _interopRequireDefault(_msgpack);
-
 var _jsYaml = require('js-yaml');
 
 var _jsYaml2 = _interopRequireDefault(_jsYaml);
@@ -210,10 +206,8 @@ var Generic = exports.Generic = function (_EventEmitter) {
 
         if (message.responseBody === 'yaml') {
           responseArgs.push(_jsYaml2.default.safeLoad(body));
-        } else if (this.raw) {
-          responseArgs.push(body);
         } else {
-          responseArgs.push(_msgpack2.default.unpack(body));
+          responseArgs.push(body);
         }
 
         // Advance separator index for continuing batch processing
@@ -231,7 +225,7 @@ var Generic = exports.Generic = function (_EventEmitter) {
 
       if (command === 'put') {
         // Message must have a body
-        var body = this.raw ? new Buffer(args.pop()) : _msgpack2.default.pack(args.pop());
+        var body = new Buffer(args.pop());
         var head = new Buffer(args.join(' ') + ' ' + body.length);
         message = Buffer.concat([head, CRLF, body, CRLF]);
       } else {

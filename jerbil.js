@@ -2,7 +2,6 @@
 
 import * as _ from 'lodash'
 import net from 'net'
-import msgpack from 'msgpack'
 import yaml from 'js-yaml'
 import Queue from 'double-ended-queue'
 import EventEmitter from 'events'
@@ -117,10 +116,8 @@ export class Generic extends EventEmitter {
 
       if (message.responseBody === 'yaml') {
         responseArgs.push(yaml.safeLoad(body))
-      } else if (this.raw) {
-        responseArgs.push(body)
       } else {
-        responseArgs.push(msgpack.unpack(body))
+        responseArgs.push(body)
       }
 
       // Advance separator index for continuing batch processing
@@ -137,7 +134,7 @@ export class Generic extends EventEmitter {
 
     if (command === 'put') {
       // Message must have a body
-      let body = this.raw ? new Buffer(args.pop()) : msgpack.pack(args.pop())
+      let body = new Buffer(args.pop());
       let head = new Buffer(`${args.join(' ')} ${body.length}`)
       message = Buffer.concat([head, CRLF, body, CRLF])
     } else {
